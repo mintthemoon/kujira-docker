@@ -1,4 +1,4 @@
-FROM golang:1.19-bullseye AS build
+FROM golang:1.18-bullseye AS build
 ARG tag_version=v0.8.0
 
 WORKDIR /build
