@@ -27,5 +27,5 @@ jobs:
     - name: buildAndPublish
       shell: bash
       run: |
-        docker build --build-arg tag_version=${{ inputs.version }} -t ghcr.io/${{ github.repository }}:${{ inputs.version }} .
+        docker build --no-cache --build-arg tag_version=${{ inputs.version }} -t ghcr.io/${{ github.repository }}:${{ inputs.version }} .
         docker push ghcr.io/${{ github.repository }}:${{ inputs.version }}

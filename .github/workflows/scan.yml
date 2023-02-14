@@ -26,7 +26,7 @@ jobs:
         echo ${new_tags[@]}
         for tag in ${new_tags[@]}
         do
-          docker build --build-arg tag_version=$tag -t ghcr.io/${{ github.repository }}:$tag .
+          docker build --no-cache --build-arg tag_version=$tag -t ghcr.io/${{ github.repository }}:$tag .
           docker push ghcr.io/${{ github.repository }}:$tag
         done
       shell: bash
