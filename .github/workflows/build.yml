@@ -1,0 +1,31 @@
+name: Build and publish tag
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: source branch name
+        required: true
+        default: main
+      version:
+        description: tag version
+        required: true
+        default: v0.8.0
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ inputs.branch }}
+    - name: auth
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: buildAndPublish
+      shell: bash
+      run: |
+        docker build --build-arg tag_version=${{ inputs.version }} -t ghcr.io/${{ github.repository }}:${{ inputs.version }} .
+        docker push ghcr.io/${{ github.repository }}:${{ inputs.version }}

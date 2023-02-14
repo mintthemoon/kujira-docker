@@ -1,0 +1,32 @@
+name: Scan and build new version tags
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: "0 * * * *"
+jobs:
+  scanAndBuild:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+      with:
+        ref: main
+    - name: auth
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: buildNewTags
+      run: |
+        token=$(curl -su ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} https://ghcr.io/token\?scope\="repository:${{ github.repository }}:pull" | jq -r .token)
+        docker_tags=$(curl -sH "Authorization: Bearer $token" https://ghcr.io/v2/${{ github.repository }}/tags/list | jq -r 'try(.tags[])')
+        binary_tags=$(git ls-remote --tags https://github.com/Team-Kujira/core | awk '{print $2}' | cut -d/ -f3 | tr '\n' ' ')
+        new_tags=($(echo $docker_tags $docker_tags $binary_tags | tr ' ' '\n' | sort | uniq -u))
+        echo ${new_tags[@]}
+        for tag in ${new_tags[@]}
+        do
+          docker build --build-arg tag_version=$tag -t ghcr.io/${{ github.repository }}:$tag .
+          docker push ghcr.io/${{ github.repository }}:$tag
+        done
+      shell: bash
