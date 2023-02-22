@@ -1,0 +1,44 @@
+name: Make statesync snapshot
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: "0 0/4 * * *"
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+    - name: auth
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: snapshotMainnet
+      shell: bash
+      run: |
+        set -e
+        VERSION=v0.7.1
+        ID=kaiyo-1
+        RPC=https://rpc-kujira.mintthemoon.xyz:443
+        LATEST_HEIGHT=$(curl -s $RPC/block | jq -r .result.block.header.height)
+        TRUST_HEIGHT=$((LATEST_HEIGHT - 2000))
+        TRUST_HASH=$(curl -s "$RPC/block?height=$TRUST_HEIGHT" | jq -r .result.block_id.hash)
+        NAME="kujira-${ID}-${LATEST_HEIGHT}"
+        VOLUME="$PWD/$NAME"
+        USER="--user $(id -u):$(id -g)"
+        rm -rf "$VOLUME"
+        mkdir "$VOLUME"
+        echo "syncing $ID ($VERSION) from $RPC to height $LATEST_HEIGHT"
+        docker run --rm $USER -v "$VOLUME:/kujira" ghcr.io/mintthemoon/kujira-docker:$VERSION init --chain-id $ID node-$RANDOM 2> /dev/null
+        curl -o "$VOLUME/config/genesis.json" -fsSL https://raw.githubusercontent.com/Team-Kujira/networks/master/mainnet/kaiyo-1.json
+        sed -i -E "s|^(enable[[:space:]]+=[[:space:]]+).*$|\1true| ; s|^(rpc_servers[[:space:]]+=[[:space:]]+).*$|\1\"$RPC,$RPC\"| ; s|^(trust_height[[:space:]]+=[[:space:]]+).*$|\1$TRUST_HEIGHT| ; s|^(trust_hash[[:space:]]+=[[:space:]]+).*$|\1\"$TRUST_HASH\"|" "$VOLUME/config/config.toml"
+        docker run --rm $USER -v "$VOLUME:/kujira" ghcr.io/mintthemoon/kujira-docker:$VERSION start --halt-height $LATEST_HEIGHT --p2p.seeds b209c0495852ccaa810b9ae8f65f2e404333dac1@seed-kujira.starsquid.io:15602
+        echo "creating snapshot $NAME.tar.gz"
+        rm -f "$NAME.tar.gz"
+        tar -C "$VOLUME" -czf "$NAME.tar.gz" data wasm
+        echo "snapshot complete!"
+    - name: upload snapshot
+      uses: actions/upload-artifact@v3
+      with:
+        name: snapshot
+        path: kujira-*.tar.gz
