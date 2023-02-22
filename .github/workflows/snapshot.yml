@@ -22,8 +22,9 @@ jobs:
         RPC=https://rpc-kujira.mintthemoon.xyz:443
         LATEST_HEIGHT=$(curl -s $RPC/block | jq -r .result.block.header.height)
         TRUST_HEIGHT=$((LATEST_HEIGHT - 2000))
+        SYNC_HEIGHT=$((TRUST_HEIGHT + 100))
         TRUST_HASH=$(curl -s "$RPC/block?height=$TRUST_HEIGHT" | jq -r .result.block_id.hash)
-        NAME="kujira_${ID}_${LATEST_HEIGHT}"
+        NAME="kujira_${ID}_${SYNC_HEIGHT}"
         VOLUME="$PWD/$NAME"
         USER="--user $(id -u):$(id -g)"
         rm -rf "$VOLUME"
@@ -32,7 +33,7 @@ jobs:
         docker run --rm $USER -v "$VOLUME:/kujira" ghcr.io/mintthemoon/kujira-docker:$VERSION init --chain-id $ID node-$RANDOM 2> /dev/null
         curl -o "$VOLUME/config/genesis.json" -fsSL https://raw.githubusercontent.com/Team-Kujira/networks/master/mainnet/kaiyo-1.json
         sed -i -E "s|^(enable[[:space:]]+=[[:space:]]+).*$|\1true| ; s|^(rpc_servers[[:space:]]+=[[:space:]]+).*$|\1\"$RPC,$RPC\"| ; s|^(trust_height[[:space:]]+=[[:space:]]+).*$|\1$TRUST_HEIGHT| ; s|^(trust_hash[[:space:]]+=[[:space:]]+).*$|\1\"$TRUST_HASH\"|" "$VOLUME/config/config.toml"
-        docker run --rm $USER -v "$VOLUME:/kujira" ghcr.io/mintthemoon/kujira-docker:$VERSION start --halt-height $LATEST_HEIGHT --p2p.seeds b209c0495852ccaa810b9ae8f65f2e404333dac1@seed-kujira.starsquid.io:15602
+        docker run --rm $USER -v "$VOLUME:/kujira" ghcr.io/mintthemoon/kujira-docker:$VERSION start --halt-height $SYNC_HEIGHT --p2p.seeds b209c0495852ccaa810b9ae8f65f2e404333dac1@seed-kujira.starsquid.io:15602
         echo "creating snapshot $NAME.tar.gz"
         rm -f "$NAME.tar.gz"
         tar -C "$VOLUME" -czf "$NAME.tar.gz" data wasm
