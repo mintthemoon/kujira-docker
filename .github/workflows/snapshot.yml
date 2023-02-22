@@ -66,7 +66,7 @@ jobs:
         echo "<ul>" >> index.html
         for folder in ${folders[@]}
         do
-            echo "<li><a href=\"https://snapshots.kujira.mintserve.org/$folder/\">$folder</a></li>" >> index.html
+            echo "<li><a href=\"https://snapshots-kujira.mintthemoon.xyz/$folder/\">$folder</a></li>" >> index.html
             cd "$folder"
             snapshots=( \
                 $(curl -fsSL -X GET -H "AccessKey: $FTP_PASSWORD" "https://$FTP_HOST/$FTP_USER/$folder/" | jq '.[].ObjectName' | tr -d '"') \
@@ -89,17 +89,17 @@ jobs:
             then
                 latest=${snapshots[${#snapshots[@]}-2]}
             fi
-            echo "<code>curl -fsSL https://snapshots.kujira.mintserve.org/$folder/$latest | tar -C \$HOME/.kujira -xz</code>" >> index.html
+            echo "<code>curl -fsSL https://snapshots-kujira.mintthemoon.xyz/$folder/$latest | tar -C \$HOME/.kujira -xz</code>" >> index.html
             echo "<h2>Downloads</h2>" >> index.html
             echo "<p>Replace the link in the command above with any of the ones listed here to use a different snapshot.</p>" >> index.html
             echo "<ul>" >> index.html
             for snapshot in ${snapshots[@]}
             do
                 if [[ "$snapshot" == "index.html" ]]; then continue; fi
-                echo "<li><a href=\"https://snapshots.kujira.mintserve.org/minimal/$snapshot\">$snapshot</a></li>" >> index.html
+                echo "<li><a href=\"https://snapshots-kujira.mintthemoon.xyz/$folder/$snapshot\">$snapshot</a></li>" >> index.html
             done
             echo "</ul>" >> index.html
-            echo "<a href=\"https://snapshots.kujira.mintserve.org\">Back</a><br/>" >> index.html
+            echo "<a href=\"https://snapshots-kujira.mintthemoon.xyz\">Back</a><br/>" >> index.html
             echo "<small style=\"line-height: 60px\">🚀 powered by <a href=\"https://mintthemoon.xyz\">mintthemoon</a> ❤️</small>" >> index.html
             echo "</body>" >> index.html
             echo "</html>" >> index.html
