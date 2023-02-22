@@ -23,7 +23,7 @@ jobs:
         LATEST_HEIGHT=$(curl -s $RPC/block | jq -r .result.block.header.height)
         TRUST_HEIGHT=$((LATEST_HEIGHT - 2000))
         TRUST_HASH=$(curl -s "$RPC/block?height=$TRUST_HEIGHT" | jq -r .result.block_id.hash)
-        NAME="kujira-${ID}-${LATEST_HEIGHT}"
+        NAME="kujira_${ID}_${LATEST_HEIGHT}"
         VOLUME="$PWD/$NAME"
         USER="--user $(id -u):$(id -g)"
         rm -rf "$VOLUME"
@@ -37,8 +37,84 @@ jobs:
         rm -f "$NAME.tar.gz"
         tar -C "$VOLUME" -czf "$NAME.tar.gz" data wasm
         echo "snapshot complete!"
-    - name: upload snapshot
-      uses: actions/upload-artifact@v3
+    - name: indexSnapshots
+      shell: bash
+      env:
+        FTP_HOST: ${{ secrets.FTP_HOST }}
+        FTP_USER: ${{ secrets.FTP_USER }}
+        FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+      run: |
+        mkdir -p snapshots/minimal
+        mv kujira-*.tar.gz snapshots/minimal
+        cd snapshots
+        folders=$(find * -maxdepth 1 -type d)
+        echo "<!DOCTYPE html>" > index.html
+        echo "<html lang=\"en\">" >> index.html
+        echo "<head>" >> index.html
+        echo "<meta charset=\"UTF-8\">" >> index.html
+        echo "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">" >> index.html
+        echo "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" >> index.html
+        echo "<title>Kujira Snapshots</title>" >> index.html
+        echo "</head>" >> index.html
+        echo "<body>" >> index.html
+        echo "<h1>Kujira Snapshots</h1>" >> index.html
+        echo "<h2>Welcome</h2>" >> index.html
+        echo "<p>Hello! These snapshots are provided to help node operators join the network.</p>" >> index.html
+        echo "<p><a href=\"https://docs.mintthemoon.xyz/kujira/statesync\">Statesync</a> is another option, if you just need to sync quickly give it a try first.</p>" >> index.html
+        echo "<h2>Types</h2>" >> index.html
+        echo "<p>Pick your poison! Mainnets only (for now 😉).</p>" >> index.html
+        echo "<ul>" >> index.html
+        for folder in ${folders[@]}
+        do
+            echo "<li><a href=\"https://snapshots.kujira.mintserve.org/$folder/\">$folder</a></li>" >> index.html
+            cd "$folder"
+            snapshots=( \
+                $(curl -fsSL -X GET -H "AccessKey: $FTP_PASSWORD" "https://$FTP_HOST/$FTP_USER/minimal/" | jq '.[].ObjectName' | tr -d '"') \
+                $(ls *.tar.gz 2>/dev/null) \
+            )
+            echo "<!DOCTYPE html>" > index.html
+            echo "<html lang=\"en\">" >> index.html
+            echo "<head>" >> index.html
+            echo "<meta charset=\"UTF-8\">" >> index.html
+            echo "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">" >> index.html
+            echo "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" >> index.html
+            echo "<title>Kujira Snapshots</title>" >> index.html
+            echo "</head>" >> index.html
+            echo "<body>" >> index.html
+            echo "<h1>Kujira Snapshots ($folder)</h1>" >> index.html
+            echo "<h2>Instructions</h2>" >> index.html
+            echo "<p>Reset your data first. Use this command to apply the latest snapshot:</p>" >> index.html
+            latest=${snapshots[${#snapshots[@]}-1]}
+            if [[ "$latest" == "index.html" ]]
+            then
+                latest=${snapshots[${#snapshots[@]}-2]}
+            fi
+            echo "<code>curl -fsSL https://snapshots.kujira.mintserve.org/$folder/$latest | tar -C \$HOME/.kujira -xz</code>" >> index.html
+            echo "<h2>Downloads</h2>" >> index.html
+            echo "<p>Replace the link in the command above with any of the ones listed here to use a different snapshot.</p>" >> index.html
+            echo "<ul>" >> index.html
+            for snapshot in ${snapshots[@]}
+            do
+                if [[ "$snapshot" == "index.html" ]]; then continue; fi
+                echo "<li><a href=\"https://snapshots.kujira.mintserve.org/minimal/$snapshot\">$snapshot</a></li>" >> index.html
+            done
+            echo "</ul>" >> index.html
+            echo "<a href=\"https://snapshots.kujira.mintserve.org\">Back</a><br/>" >> index.html
+            echo "<small style=\"line-height: 60px\">🚀 powered by <a href=\"https://mintthemoon.xyz\">mintthemoon</a> ❤️</small>" >> index.html
+            echo "</body>" >> index.html
+            echo "</html>" >> index.html
+            cd ..
+        done
+        echo "</ul>" >> index.html
+        echo "<small style=\"line-height: 60px\">🚀 powered by <a href=\"https://mintthemoon.xyz\">mintthemoon</a> ❤️</small>" >> index.html
+        echo "</body>" >> index.html
+        echo "</html>" >> index.html
+    - name: uploadSnapshots
+      uses: kevinpainchaud/simple-ftp-deploy-action@v1.2.1
       with:
-        name: snapshot
-        path: kujira-*.tar.gz
+        ftp_host: ${{ secrets.FTP_HOST }}
+        ftp_username: ${{ secrets.FTP_USER }}
+        ftp_password: ${{ secrets.FTP_PASSWORD }}
+        local_source_dir: snapshots
+        dist_target_dir: /snapshots-kujira
+        delete: "false"
