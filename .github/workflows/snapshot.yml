@@ -45,7 +45,7 @@ jobs:
         FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
       run: |
         mkdir -p snapshots/minimal
-        mv kujira-*.tar.gz snapshots/minimal
+        mv kujira_*.tar.gz snapshots/minimal
         cd snapshots
         folders=$(find * -maxdepth 1 -type d)
         echo "<!DOCTYPE html>" > index.html
@@ -69,7 +69,7 @@ jobs:
             echo "<li><a href=\"https://snapshots.kujira.mintserve.org/$folder/\">$folder</a></li>" >> index.html
             cd "$folder"
             snapshots=( \
-                $(curl -fsSL -X GET -H "AccessKey: $FTP_PASSWORD" "https://$FTP_HOST/$FTP_USER/minimal/" | jq '.[].ObjectName' | tr -d '"') \
+                $(curl -fsSL -X GET -H "AccessKey: $FTP_PASSWORD" "https://$FTP_HOST/$FTP_USER/$folder/" | jq '.[].ObjectName' | tr -d '"') \
                 $(ls *.tar.gz 2>/dev/null) \
             )
             echo "<!DOCTYPE html>" > index.html
