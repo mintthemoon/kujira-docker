@@ -15,6 +15,7 @@ WORKDIR /dist
 RUN mkdir kujira bin lib \
     && mv $(ldd $(which kujirad) | grep libgcc_s.so.1 | awk '{print $3}') lib/ \
     && mv $(ldd $(which kujirad) | grep libwasmvm.x86_64.so | awk '{print $3}') lib/ \
+    && mv $(which stty) bin/ \
     && mv $(which kujirad) bin/
 
 
