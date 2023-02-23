@@ -10,6 +10,7 @@ RUN git clone \
         https://github.com/Team-Kujira/core.git \
         . \
     && go mod edit -replace github.com/cosmos/iavl=github.com/chillyvee/iavl@v0.19.4-blunt.3 \
+    && go mod tidy \
     && make install \
     && kujirad version
 WORKDIR /dist
