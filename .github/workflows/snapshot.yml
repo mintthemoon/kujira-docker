@@ -28,7 +28,7 @@ jobs:
         mkdir $VOLUME
         mv config $VOLUME
         echo "syncing $ID ($VERSION) to height $TRUST_HEIGHT"
-        docker run --rm $USER -v "$VOLUME:/kujira" ghcr.io/mintthemoon/kujira-docker:$VERSION start --halt-height $TRUST_HEIGHT --p2p.seeds b209c0495852ccaa810b9ae8f65f2e404333dac1@seed-kujira.starsquid.io:15602
+        docker run --rm $USER -v "$VOLUME:/kujira" ghcr.io/mintthemoon/kujira-docker:$VERSION start --halt-height $TRUST_HEIGHT --p2p.seeds b209c0495852ccaa810b9ae8f65f2e404333dac1@seed-kujira.starsquid.io:15602,ade4d8bc8cbe014af6ebdf3cb7b1e9ad36f412c0@seeds.polkachu.com:11856
         echo "creating snapshot $NAME.tar.gz"
         rm -f "$NAME.tar.gz"
         tar -C "$VOLUME" -czf "$NAME.tar.gz" data wasm
